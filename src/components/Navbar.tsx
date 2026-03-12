@@ -42,9 +42,9 @@ const Navbar = () => {
           <a href="#spaces" className="block text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Spaces</a>
           <a href="#pricing" className="block text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Pricing</a>
           <a href="#facilities" className="block text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>Facilities</a>
-          <Link to="/book" onClick={() => setIsOpen(false)}>
-            <Button size="sm" className="w-full">Book a Seat</Button>
-          </Link>
+            <Link to="/login">
+              <Button size="sm">Book a Seat</Button>
+            </Link>
         </div>
       )}
     </nav>
