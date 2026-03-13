@@ -9,6 +9,7 @@ import Index from "./pages/Index.tsx";
 import BookingPage from "./pages/BookingPage.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import MyBookingsPage from "./pages/MyBookingsPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <BookingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookingsPage />
                 </ProtectedRoute>
               }
             />
