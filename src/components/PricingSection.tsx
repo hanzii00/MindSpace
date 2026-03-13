@@ -57,7 +57,7 @@ const PricingSection = () => {
               <Tag className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">Student Promo:</span>
               <span className="text-sm font-bold text-primary">₱39/hr</span>
-              <span className="text-xs text-muted-foreground">· min. 2 hrs · valid ID required</span>
+              <span className="text-xs text-muted-foreground">· min. 2 hrs · Student ID required</span>
             </div>
           </div>
 
