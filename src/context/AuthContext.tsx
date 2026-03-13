@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (name: string, email: string, password: string) => Promise<User>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -23,7 +23,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Restore session on refresh
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
@@ -48,10 +47,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return me;
   };
 
-const register = async (name: string, email: string, password: string): Promise<User> => {
-    await api.post("/api/auth/register/", { name, email, password }); // was username: name
-    return await login(email, password);
-};
+  const register = async (name: string, email: string, password: string): Promise<void> => {
+    await api.post("/api/auth/register/", { name, email, password });
+  };
 
   const logout = () => {
     localStorage.removeItem("access_token");

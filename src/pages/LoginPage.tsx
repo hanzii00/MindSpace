@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { BookOpen, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,30 +9,45 @@ import { useAuth } from "@/context/AuthContext";
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { login, register } = useAuth();
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/book";
 
-  const [tab, setTab] = useState<"login" | "register">("login");
+  const [tab, setTab] = useState<"login" | "register">(
+    searchParams.get("tab") === "register" ? "register" : "login"
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const handleTabSwitch = (t: "login" | "register") => {
+    setTab(t);
+    setError("");
+    setSuccess("");
+  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setSubmitting(true);
     try {
-      let me;
       if (tab === "register") {
-        me = await register(name, email, password);
+        await register(name, email, password);
+        setTab("login");
+        setName("");
+        setEmail("");
+        setPassword("");
+        setSuccess("Account created! Please sign in.");
       } else {
-        me = await login(email, password);
+        const me = await login(email, password);
+        navigate(me.is_admin ? "/admin" : from, { replace: true });
       }
-      navigate(me.is_admin ? "/admin" : from, { replace: true });
     } catch (err: any) {
       const detail = err?.response?.data;
       if (typeof detail === "string") setError(detail);
@@ -84,7 +99,7 @@ const LoginPage = () => {
                 {(["login", "register"] as const).map((t) => (
                   <button
                     key={t}
-                    onClick={() => { setTab(t); setError(""); }}
+                    onClick={() => handleTabSwitch(t)}
                     className={cn(
                       "flex-1 py-2 text-sm font-medium rounded-md transition-all",
                       tab === t
@@ -116,6 +131,13 @@ const LoginPage = () => {
                 <span className="text-xs text-muted-foreground">or</span>
                 <div className="flex-1 h-px bg-border" />
               </div>
+
+              {/* Success banner */}
+              {success && (
+                <div className="mb-4 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-600">
+                  {success}
+                </div>
+              )}
 
               {/* Error banner */}
               {error && (
