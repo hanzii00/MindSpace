@@ -12,7 +12,7 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const { login, register } = useAuth();
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/book";
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
 
   const [tab, setTab] = useState<"login" | "register">(
     searchParams.get("tab") === "register" ? "register" : "login"

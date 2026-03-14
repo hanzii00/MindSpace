@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import {
   fetchSpaces,
   fetchSeatsBySpace,
+  fetchAvailableSeats,
   createBooking,
   toApiTime,
   fromApiTime,
@@ -91,7 +92,7 @@ const ErrorBanner = ({ message }: { message: string }) => (
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const BookingPage = () => {
-  // ── Selection state ──────────────────────────────────────────────────────────
+  // ── Selection state ───────────────────────────────────────────────────────
   const [date, setDate] = useState<Date>();
   const [startTime, setStartTime] = useState<string>();
   const [endTime, setEndTime] = useState<string>();
@@ -99,19 +100,20 @@ const BookingPage = () => {
   const [selectedSeat, setSelectedSeat] = useState<Seat>();
   const [notes, setNotes] = useState("");
 
-  // ── Server data ──────────────────────────────────────────────────────────────
+  // ── Server data ───────────────────────────────────────────────────────────
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [seats, setSeats] = useState<Seat[]>([]);
   const [bookedSeatIds, setBookedSeatIds] = useState<Set<number>>(new Set());
 
-  // ── UI state ─────────────────────────────────────────────────────────────────
+  // ── UI state ──────────────────────────────────────────────────────────────
   const [loadingSpaces, setLoadingSpaces] = useState(true);
   const [loadingSeats, setLoadingSeats] = useState(false);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking>();
   const [error, setError] = useState<string>();
 
-  // ── Fetch spaces on mount ────────────────────────────────────────────────────
+  // ── Fetch spaces on mount ─────────────────────────────────────────────────
   useEffect(() => {
     fetchSpaces()
       .then(setSpaces)
@@ -119,29 +121,66 @@ const BookingPage = () => {
       .finally(() => setLoadingSpaces(false));
   }, []);
 
-  // ── Fetch seats when space changes ───────────────────────────────────────────
+  // ── Fetch seats when space changes ────────────────────────────────────────
   useEffect(() => {
-    if (!selectedSpace) { setSeats([]); return; }
+    if (!selectedSpace) { setSeats([]); setBookedSeatIds(new Set()); return; }
     setLoadingSeats(true);
     setSelectedSeat(undefined);
     setBookedSeatIds(new Set());
+
     fetchSeatsBySpace(selectedSpace.id)
-      .then(setSeats)
+      .then(async (fetchedSeats) => {
+        setSeats(fetchedSeats);
+        // If date and time are already picked, check availability immediately
+        if (date && startTime && endTime) {
+          const availableIds = await fetchAvailableSeats(
+            format(date, "yyyy-MM-dd"),
+            toApiTime(startTime),
+            toApiTime(endTime)
+          );
+          const availableSet = new Set(availableIds);
+          const takenIds = new Set(
+            fetchedSeats.filter((s) => !availableSet.has(s.id)).map((s) => s.id)
+          );
+          setBookedSeatIds(takenIds);
+        }
+      })
       .catch(() => setError("Failed to load seats for this space."))
       .finally(() => setLoadingSeats(false));
   }, [selectedSpace]);
 
-  // ── When date + time window changes, you could fetch availability here ───────
-  // (Omitted: extend with a GET /api/seats/availability/?space=X&date=Y&start=Z&end=W
-  //  endpoint if your backend supports it, then populate bookedSeatIds.)
+ // Re-check availability when date or time changes
+useEffect(() => {
+  if (!date || !startTime || !endTime || seats.length === 0) return;
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  setCheckingAvailability(true);
+  fetchAvailableSeats(
+    format(date, "yyyy-MM-dd"),
+    toApiTime(startTime),
+    toApiTime(endTime)
+  )
+    .then((availableIds) => {
+      const availableSet = new Set(availableIds);
+      const takenIds = new Set(
+        seats.filter((s) => !availableSet.has(s.id)).map((s) => s.id)
+      );
+      setBookedSeatIds(takenIds);
+      if (selectedSeat && takenIds.has(selectedSeat.id)) {
+        setSelectedSeat(undefined);
+        setError("Your selected seat is not available for this time. Please choose another.");
+      }
+    })
+    .catch(() => {})
+    .finally(() => setCheckingAvailability(false));
+}, [date, startTime, endTime, seats]); 
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const endTimeOptions = startTime
     ? TIME_SLOTS.filter((t) => TIME_SLOTS.indexOf(t) > TIME_SLOTS.indexOf(startTime))
     : [];
 
   const canConfirm =
-    date && startTime && endTime && selectedSpace && selectedSeat && !submitting;
+    date && startTime && endTime && selectedSpace && selectedSeat && !submitting && !checkingAvailability;
 
   const reset = () => {
     setDate(undefined);
@@ -152,9 +191,10 @@ const BookingPage = () => {
     setNotes("");
     setError(undefined);
     setConfirmedBooking(undefined);
+    setBookedSeatIds(new Set());
   };
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleConfirm = async () => {
     if (!canConfirm) return;
     setSubmitting(true);
@@ -188,12 +228,12 @@ const BookingPage = () => {
     }
   };
 
-  // ── Confirmed state ──────────────────────────────────────────────────────────
+  // ── Confirmed state ───────────────────────────────────────────────────────
   if (confirmedBooking) {
     return <ConfirmationView booking={confirmedBooking} onBookAnother={reset} />;
   }
 
-  // ── Main render ──────────────────────────────────────────────────────────────
+  // ── Main render ───────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -214,9 +254,8 @@ const BookingPage = () => {
 
         <div className="grid lg:grid-cols-3 gap-10">
 
-          {/* ── Column 1: Date & Time ─────────────────────────────────────── */}
+          {/* ── Column 1: Date & Time ──────────────────────────────────── */}
           <div className="space-y-8">
-            {/* Date picker */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-3 block">Date</label>
               <Popover>
@@ -242,7 +281,6 @@ const BookingPage = () => {
               </Popover>
             </div>
 
-            {/* Start time */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-3 block">Start Time</label>
               <div className="grid grid-cols-3 gap-2">
@@ -263,7 +301,6 @@ const BookingPage = () => {
               </div>
             </div>
 
-            {/* End time — only shown after a start is selected */}
             {startTime && (
               <div>
                 <label className="text-sm font-semibold text-foreground mb-3 block">End Time</label>
@@ -286,7 +323,6 @@ const BookingPage = () => {
               </div>
             )}
 
-            {/* Optional notes */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-3 block">
                 Notes <span className="font-normal text-muted-foreground">(optional)</span>
@@ -301,7 +337,7 @@ const BookingPage = () => {
             </div>
           </div>
 
-          {/* ── Column 2: Space Type ──────────────────────────────────────── */}
+          {/* ── Column 2: Space Type ───────────────────────────────────── */}
           <div>
             <label className="text-sm font-semibold text-foreground mb-3 block">Space Type</label>
             {loadingSpaces ? (
@@ -324,7 +360,7 @@ const BookingPage = () => {
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold text-sm text-card-foreground">{space.name}</h3>
                       <span className="text-xs font-medium text-primary">
-                        {space.capacity} seats
+                        {space.seat_count} seats
                       </span>
                     </div>
                     {space.description && (
@@ -336,11 +372,18 @@ const BookingPage = () => {
             )}
           </div>
 
-          {/* ── Column 3: Seat Grid ───────────────────────────────────────── */}
+          {/* ── Column 3: Seat Grid ────────────────────────────────────── */}
           <div>
-            <label className="text-sm font-semibold text-foreground mb-3 block">
-              {selectedSpace ? `Select a Seat — ${selectedSpace.name}` : "Select a space first"}
-            </label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-semibold text-foreground">
+                {selectedSpace ? `Select a Seat — ${selectedSpace.name}` : "Select a space first"}
+              </label>
+              {checkingAvailability && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Checking availability…
+                </span>
+              )}
+            </div>
 
             {loadingSeats ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -356,8 +399,8 @@ const BookingPage = () => {
                       <button
                         key={seat.id}
                         disabled={isTaken}
-                        onClick={() => setSelectedSeat(seat)}
-                        title={`₱${seat.price_per_hour}/hr`}
+                        onClick={() => { setSelectedSeat(seat); setError(undefined); }}
+                        title={isTaken ? "Already booked" : `₱${seat.price_per_hour}/hr`}
                         className={cn(
                           "aspect-square rounded-lg text-xs font-semibold transition-all flex items-center justify-center",
                           isTaken && "bg-muted text-muted-foreground/40 cursor-not-allowed",
@@ -371,7 +414,6 @@ const BookingPage = () => {
                   })}
                 </div>
 
-                {/* Price hint */}
                 {selectedSeat && startTime && endTime && (
                   <p className="mt-3 text-xs text-muted-foreground">
                     ₱{selectedSeat.price_per_hour}/hr ·{" "}
@@ -385,16 +427,15 @@ const BookingPage = () => {
                   </p>
                 )}
 
-                {/* Legend */}
                 <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded bg-card border border-border" />Available
+                    <div className="w-3 h-3 rounded bg-card border border-border" /> Available
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded bg-primary" />Selected
+                    <div className="w-3 h-3 rounded bg-primary" /> Selected
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded bg-muted" />Taken
+                    <div className="w-3 h-3 rounded bg-muted" /> Taken
                   </div>
                 </div>
               </>
@@ -406,14 +447,15 @@ const BookingPage = () => {
           </div>
         </div>
 
-        {/* ── Confirm bar ─────────────────────────────────────────────────── */}
+        {/* ── Confirm bar ─────────────────────────────────────────────── */}
         <div className="mt-12 flex items-center justify-between gap-4">
-          {/* Summary */}
           <div className="text-sm text-muted-foreground hidden sm:block">
             {date && startTime && endTime && selectedSeat ? (
               <>
                 {format(date, "MMM d")} · {startTime} → {endTime} ·{" "}
-                <span className="text-foreground font-medium">{selectedSpace?.name}, Seat {selectedSeat.name}</span>
+                <span className="text-foreground font-medium">
+                  {selectedSpace?.name}, Seat {selectedSeat.name}
+                </span>
               </>
             ) : (
               "Complete all steps above to confirm."
@@ -428,6 +470,8 @@ const BookingPage = () => {
           >
             {submitting ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Booking…</>
+            ) : checkingAvailability ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Checking…</>
             ) : (
               "Confirm Booking"
             )}
