@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sun, Moon, Infinity, Users, BookOpen, Zap, Clock, Tag } from "lucide-react";
+import { Sun, Moon, Infinity, Users, BookOpen, Zap, Clock, Tag, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const timePasses = [
@@ -39,7 +39,7 @@ const PricingSection = () => {
     <section id="pricing" className="py-24 bg-secondary/50">
       <div className="container mx-auto px-6">
 
-        {/* Header — matches other sections exactly */}
+        {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-display text-foreground mb-4">
             Simple, transparent pricing
@@ -51,7 +51,7 @@ const PricingSection = () => {
 
         <div className="max-w-5xl mx-auto space-y-10">
 
-          {/* Student Promo — subtle pill banner */}
+          {/* Student Promo */}
           <div className="flex items-center justify-center">
             <div className="inline-flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-full px-6 py-3">
               <Tag className="h-4 w-4 text-primary" />
@@ -97,7 +97,7 @@ const PricingSection = () => {
             </div>
           </div>
 
-          {/* Regular Rates + Multi-Day side by side */}
+          {/* Regular Rates + Multi-Day */}
           <div className="grid md:grid-cols-2 gap-6">
             <Card className="border-border shadow-soft bg-card">
               <CardContent className="p-6">
@@ -125,7 +125,7 @@ const PricingSection = () => {
                 </p>
                 <div className="divide-y divide-border">
                   {multiDayPasses.map((item) => (
-                    <div key={item.name} className={`flex justify-between items-center py-3 ${item.best ? "opacity-100" : ""}`}>
+                    <div key={item.name} className="flex justify-between items-center py-3">
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-card-foreground">{item.name}</span>
@@ -195,7 +195,12 @@ const PricingSection = () => {
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-12 flex items-center justify-center gap-4">
+          <Link to="/membership">
+            <Button size="lg" variant="outline" className="min-w-[200px]">
+              <Crown className="h-4 w-4 mr-2" /> View Memberships
+            </Button>
+          </Link>
           <Link to="/book">
             <Button size="lg" className="min-w-[200px]">Book a Seat</Button>
           </Link>
