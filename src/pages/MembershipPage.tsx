@@ -219,10 +219,11 @@ const MembershipPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       <Navbar />
 
-      <div className="pt-28 pb-24 container mx-auto px-6 max-w-5xl">
+      <div className="flex-1 pt-28 pb-24 container mx-auto px-6 max-w-5xl">
+
 
         <button
           onClick={() => navigate(-1)}
