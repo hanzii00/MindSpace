@@ -2,7 +2,7 @@ import { BookOpen } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-foreground py-12">
+    <footer className="bg-foreground py-12 mt-auto">
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
