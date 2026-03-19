@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, BookOpen, LogOut, CalendarDays, LayoutDashboard, Loader2 } from "lucide-react";
+import { Menu, X, BookOpen, LogOut, CalendarDays, LayoutDashboard, Loader2, Crown } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
@@ -11,7 +11,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const hideNavLinks = location.pathname === "/book" || location.pathname === "/my-bookings";
+  const hideNavLinks = ["/book", "/my-bookings", "/membership"].includes(location.pathname);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -69,15 +69,12 @@ const Navbar = () => {
               <a href="#facilities" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Facilities
               </a>
-
-              {/* Light black separator */}
               <div className="w-[2px] h-6 bg-black/20 mx-2" />
             </div>
           )}
 
           {showLoggedIn ? (
             <div className="flex items-center gap-1">
-
               {user?.is_admin && (
                 <Link to="/admin">
                   <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
@@ -86,23 +83,24 @@ const Navbar = () => {
                   </Button>
                 </Link>
               )}
-
+              <Link to="/membership">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+                  <Crown className="h-4 w-4" />
+                  Membership
+                </Button>
+              </Link>
               <Link to="/my-bookings">
                 <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
                   <CalendarDays className="h-4 w-4" />
                   My Bookings
                 </Button>
               </Link>
-
               <Link to="/book">
                 <Button size="sm" className="ml-2">
                   Book a Seat
                 </Button>
               </Link>
-
-              {/* Light black separator */}
               <div className="w-[2px] h-6 bg-black/20 mx-2" />
-
               <LogoutButton />
             </div>
           ) : (
@@ -110,7 +108,6 @@ const Navbar = () => {
               <Button size="sm">Sign In</Button>
             </Link>
           )}
-
         </div>
 
         {/* Mobile hamburger */}
@@ -125,7 +122,6 @@ const Navbar = () => {
       {/* Mobile menu */}
       {isOpen && (
         <div className="md:hidden bg-background border-b border-border px-6 pb-4 space-y-1">
-
           {!hideNavLinks && (
             <>
               <a
@@ -135,7 +131,6 @@ const Navbar = () => {
               >
                 Spaces
               </a>
-
               <a
                 href="#pricing"
                 className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -143,7 +138,6 @@ const Navbar = () => {
               >
                 Pricing
               </a>
-
               <a
                 href="#facilities"
                 className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -151,14 +145,12 @@ const Navbar = () => {
               >
                 Facilities
               </a>
-
               <div className="h-px bg-black/20 my-2" />
             </>
           )}
 
           {showLoggedIn ? (
             <div className="space-y-1 pt-1">
-
               {user?.is_admin && (
                 <Link to="/admin" onClick={() => setIsOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full justify-start gap-1.5 text-muted-foreground">
@@ -167,24 +159,26 @@ const Navbar = () => {
                   </Button>
                 </Link>
               )}
-
+              <Link to="/membership" onClick={() => setIsOpen(false)}>
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-1.5 text-muted-foreground">
+                  <Crown className="h-4 w-4" />
+                  Membership
+                </Button>
+              </Link>
               <Link to="/my-bookings" onClick={() => setIsOpen(false)}>
                 <Button variant="ghost" size="sm" className="w-full justify-start gap-1.5 text-muted-foreground">
                   <CalendarDays className="h-4 w-4" />
                   My Bookings
                 </Button>
               </Link>
-
               <Link to="/book" onClick={() => setIsOpen(false)}>
                 <Button size="sm" className="w-full mt-2">
                   Book a Seat
                 </Button>
               </Link>
-
               <div className="pt-2">
                 <LogoutButton />
               </div>
-
             </div>
           ) : (
             <Link to="/login" onClick={() => setIsOpen(false)}>
@@ -193,7 +187,6 @@ const Navbar = () => {
               </Button>
             </Link>
           )}
-
         </div>
       )}
     </nav>

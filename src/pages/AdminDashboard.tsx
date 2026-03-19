@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   BookOpen, Users, CalendarCheck, LayoutDashboard,
   LogOut, TrendingUp, Clock, CheckCircle, XCircle,
-  Loader2, Trash2, Search, AlertCircle, MapPin,
+  Loader2, Trash2, Search, AlertCircle, MapPin, Crown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -11,10 +11,11 @@ import {
   fetchAdminBookings, cancelAdminBooking,
   fetchAdminUsers, fetchAnalytics,
   fetchSpaces, fetchAdminSeats,
+  fetchAdminMemberships,
 } from "@/services/bookingService";
-import type { Booking, AdminUser, Analytics, Space, Seat } from "@/services/bookingService";
+import type { Booking, AdminUser, Analytics, Space, Seat, UserMembership } from "@/services/bookingService";
 
-type NavLabel = "Dashboard" | "Bookings" | "Users" | "Spaces";
+type NavLabel = "Dashboard" | "Bookings" | "Users" | "Spaces" | "Memberships";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,12 @@ const statusStyles: Record<string, string> = {
   confirmed: "text-green-600 bg-green-500/10",
   cancelled: "text-red-500 bg-red-500/10",
   completed: "text-blue-500 bg-blue-500/10",
+};
+
+const membershipStatusStyles: Record<string, string> = {
+  active: "text-green-600 bg-green-500/10",
+  cancelled: "text-red-500 bg-red-500/10",
+  expired: "text-muted-foreground bg-muted",
 };
 
 const StatusIcon = ({ status }: { status: string }) =>
@@ -358,17 +365,11 @@ const SpacesPanel = () => {
 
                 {space.description && <p className="text-sm text-muted-foreground mb-3">{space.description}</p>}
 
-                {/* Available seats count — updates based on current bookings */}
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-green-600 font-medium">
-                    {space.available_seats} available
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    / {space.seat_count} total — click to expand
-                  </span>
+                  <span className="text-xs text-green-600 font-medium">{space.available_seats} available</span>
+                  <span className="text-xs text-muted-foreground">/ {space.seat_count} total — click to expand</span>
                 </div>
 
-                {/* Progress bar */}
                 <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full bg-green-500 transition-all"
@@ -403,6 +404,87 @@ const SpacesPanel = () => {
   );
 };
 
+// ── Memberships Panel ─────────────────────────────────────────────────────────
+
+const MembershipsPanel = () => {
+  const [memberships, setMemberships] = useState<UserMembership[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    fetchAdminMemberships()
+      .then(setMemberships)
+      .catch(() => setError("Failed to load memberships."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = memberships.filter(m => {
+    const matchesSearch = m.user_email.toLowerCase().includes(search.toLowerCase()) ||
+      m.plan_detail.name.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || m.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex-1 max-w-sm">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search by user or plan..." />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      <Card className="border-border bg-card">
+        {loading ? <LoadingSpinner /> : filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">No memberships found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {["ID", "User", "Plan", "Price", "Start", "End", "Status"].map(h => (
+                    <th key={h} className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map(m => (
+                  <tr key={m.id} className="hover:bg-secondary/40 transition-colors">
+                    <td className="px-6 py-3.5 text-xs text-muted-foreground font-mono">#{m.id}</td>
+                    <td className="px-6 py-3.5 font-medium text-card-foreground">{m.user_email}</td>
+                    <td className="px-6 py-3.5 text-muted-foreground">{m.plan_detail.name}</td>
+                    <td className="px-6 py-3.5 text-muted-foreground">₱{parseFloat(m.plan_detail.price).toLocaleString()}</td>
+                    <td className="px-6 py-3.5 text-muted-foreground">{m.start_date}</td>
+                    <td className="px-6 py-3.5 text-muted-foreground">{m.end_date}</td>
+                    <td className="px-6 py-3.5">
+                      <span className={cn("px-2.5 py-1 rounded-full text-xs font-semibold capitalize", membershipStatusStyles[m.status])}>
+                        {m.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+};
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 const navItems: { icon: React.ElementType; label: NavLabel }[] = [
@@ -410,6 +492,7 @@ const navItems: { icon: React.ElementType; label: NavLabel }[] = [
   { icon: CalendarCheck, label: "Bookings" },
   { icon: Users, label: "Users" },
   { icon: BookOpen, label: "Spaces" },
+  { icon: Crown, label: "Memberships" },
 ];
 
 const panelTitle: Record<NavLabel, string> = {
@@ -417,6 +500,7 @@ const panelTitle: Record<NavLabel, string> = {
   Bookings: "All Bookings",
   Users: "Users",
   Spaces: "Spaces & Seats",
+  Memberships: "Memberships",
 };
 
 const AdminDashboard = () => {
@@ -489,10 +573,11 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {activeNav === "Dashboard" && <DashboardPanel analytics={analytics} bookings={bookings} loading={loading} error={error} />}
-        {activeNav === "Bookings"  && <BookingsPanel />}
-        {activeNav === "Users"     && <UsersPanel />}
-        {activeNav === "Spaces"    && <SpacesPanel />}
+        {activeNav === "Dashboard"   && <DashboardPanel analytics={analytics} bookings={bookings} loading={loading} error={error} />}
+        {activeNav === "Bookings"    && <BookingsPanel />}
+        {activeNav === "Users"       && <UsersPanel />}
+        {activeNav === "Spaces"      && <SpacesPanel />}
+        {activeNav === "Memberships" && <MembershipsPanel />}
       </main>
     </div>
   );

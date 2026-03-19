@@ -10,6 +10,7 @@ import BookingPage from "./pages/BookingPage.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import MyBookingsPage from "./pages/MyBookingsPage.tsx";
+import MembershipPage from "./pages/MembershipPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,14 @@ const App = () => (
               }
             />
             <Route
+              path="/membership"
+              element={
+                <ProtectedRoute>
+                  <MembershipPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin"
               element={
                 <ProtectedRoute adminOnly>
@@ -48,7 +57,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
