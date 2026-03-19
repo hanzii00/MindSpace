@@ -73,6 +73,29 @@ export interface Analytics {
   };
 }
 
+export interface MembershipPlan {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  billing_cycle: "monthly" | "yearly";
+  hours_per_month: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UserMembership {
+  id: number;
+  user: number;
+  user_email: string;
+  plan: number;
+  plan_detail: MembershipPlan;
+  status: "active" | "expired" | "cancelled";
+  start_date: string;
+  end_date: string;
+  created_at: string;
+}
+
 // ── Spaces ────────────────────────────────────────────────────────────────────
 
 export const fetchSpaces = async (): Promise<Space[]> => {
@@ -105,6 +128,7 @@ export const fetchAvailableSeats = async (
   return data.map((s) => s.id);
 };
 
+// ── Bookings ──────────────────────────────────────────────────────────────────
 
 export const createBooking = async (payload: CreateBookingPayload): Promise<Booking> => {
   const { data } = await api.post<Booking>("/api/bookings/", payload);
@@ -148,6 +172,34 @@ export const fetchAnalytics = async (): Promise<Analytics> => {
   return data;
 };
 
+// ── Memberships ───────────────────────────────────────────────────────────────
+
+export const fetchMembershipPlans = async (): Promise<MembershipPlan[]> => {
+  const { data } = await api.get<PaginatedResponse<MembershipPlan>>("/api/memberships/");
+  return data.results;
+};
+
+export const fetchMyMembership = async (): Promise<UserMembership> => {
+  const { data } = await api.get<UserMembership>("/api/my-membership/");
+  return data;
+};
+
+export const subscribeToPlan = async (planId: number): Promise<UserMembership> => {
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setMonth(endDate.getMonth() + 1);
+  const { data } = await api.post<UserMembership>("/api/memberships/subscribe/", {
+    plan: planId,
+    start_date: today.toISOString().split("T")[0],
+    end_date: endDate.toISOString().split("T")[0],
+  });
+  return data;
+};
+
+export const cancelMembership = async (): Promise<void> => {
+  await api.post("/api/memberships/cancel/");
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export const toApiTime = (displayTime: string): string => {
@@ -164,4 +216,8 @@ export const fromApiTime = (apiTime: string): string => {
   const meridiem = h < 12 ? "AM" : "PM";
   const displayHour = h % 12 === 0 ? 12 : h % 12;
   return `${displayHour}:${String(m).padStart(2, "0")} ${meridiem}`;
+};
+export const fetchAdminMemberships = async (): Promise<UserMembership[]> => {
+  const { data } = await api.get<PaginatedResponse<UserMembership>>("/api/admin/memberships/users/");
+  return data.results;
 };
