@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import openSpace from "@/assets/open-space.jpg";
-import privateRoom from "@/assets/private-room.jpg";
-import quietZone from "@/assets/quiet-zone.jpg";
+import openSpace from "@/assets/openspace.jpg";
+import privateRoom from "@/assets/huddleroom.jpg";
+import quietZone from "@/assets/quietzone.jpg";
 
 const spaces = [
   {

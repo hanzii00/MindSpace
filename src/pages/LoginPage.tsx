@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { BookOpen, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -24,11 +24,13 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleTabSwitch = (t: "login" | "register") => {
     setTab(t);
     setError("");
     setSuccess("");
+    setVerificationSent(false);
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -39,11 +41,10 @@ const LoginPage = () => {
     try {
       if (tab === "register") {
         await register(name, email, password);
-        setTab("login");
+        setVerificationSent(true);
         setName("");
         setEmail("");
         setPassword("");
-        setSuccess("Account created! Please sign in.");
       } else {
         const me = await login(email, password);
         navigate(me.is_admin ? "/admin" : from, { replace: true });
@@ -51,26 +52,62 @@ const LoginPage = () => {
     } catch (err: any) {
       const detail = err?.response?.data;
       if (typeof detail === "string") setError(detail);
+      else if (Array.isArray(detail)) setError(detail[0]);           // ← add this
       else if (detail?.detail) setError(detail.detail);
+      else if (detail?.non_field_errors) setError(detail.non_field_errors[0]); // ← add this
       else if (detail?.email) setError(`Email: ${detail.email[0]}`);
       else if (detail?.password) setError(`Password: ${detail.password[0]}`);
       else if (detail?.username) setError(`Username: ${detail.username[0]}`);
       else setError("Something went wrong. Please try again.");
-    } finally {
+    }finally {
       setSubmitting(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    setError("Google login coming soon.");
-  };
+  // Show verification sent screen after registration
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="font-display text-lg text-foreground">MindSpace</span>
+          </Link>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-6 py-12">
+          <div className="w-full max-w-md text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <MailCheck className="w-8 h-8 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-display text-foreground mb-2">Check your email</h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              We sent a verification link to your email address. Click it to activate your account before signing in.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setVerificationSent(false);
+                setTab("login");
+              }}
+            >
+              Back to Sign In
+            </Button>
+            <p className="text-xs text-muted-foreground mt-4">
+              Didn't receive it? Check your spam folder.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-border">
         <Link to="/" className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
           <span className="font-display text-lg text-foreground">MindSpace</span>
         </Link>
         <Link
@@ -85,9 +122,13 @@ const LoginPage = () => {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-display text-foreground mb-2">Welcome back</h1>
+            <h1 className="text-3xl font-display text-foreground mb-2">
+              {tab === "login" ? "Welcome back" : "Create an account"}
+            </h1>
             <p className="text-muted-foreground text-sm">
-              Sign in to book your space at MindSpace.
+              {tab === "login"
+                ? "Sign in to book your space at MindSpace."
+                : "Register to get started with MindSpace."}
             </p>
           </div>
 
@@ -112,37 +153,17 @@ const LoginPage = () => {
                 ))}
               </div>
 
-              {/* Google OAuth */}
-              <button
-                onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg border border-border bg-background hover:bg-secondary transition-colors text-sm font-medium text-foreground mb-4"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Continue with Google
-              </button>
-
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">or</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
+              {/* Error banner */}
+              {error && (
+                <div className="mb-4 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
 
               {/* Success banner */}
               {success && (
                 <div className="mb-4 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-sm text-green-600">
                   {success}
-                </div>
-              )}
-
-              {/* Error banner */}
-              {error && (
-                <div className="mb-4 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-                  {error}
                 </div>
               )}
 
