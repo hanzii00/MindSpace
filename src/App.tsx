@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard.tsx";
 import MyBookingsPage from "./pages/MyBookingsPage.tsx";
 import MembershipPage from "./pages/MembershipPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import VerifyEmailPage from "./pages/VerifyEmailPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route
               path="/book"
               element={

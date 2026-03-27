@@ -51,7 +51,6 @@ const Navbar = () => {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
           <span className="font-display text-xl text-foreground">MindSpace</span>
         </Link>
 

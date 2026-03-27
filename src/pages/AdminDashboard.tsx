@@ -522,7 +522,6 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background flex">
       <aside className="w-60 border-r border-border bg-card flex flex-col fixed inset-y-0 left-0 z-40">
         <div className="px-6 py-5 border-b border-border flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
           <span className="font-display text-lg text-foreground">MindSpace</span>
           <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full ml-auto">Admin</span>
         </div>
